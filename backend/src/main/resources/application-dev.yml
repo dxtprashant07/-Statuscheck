@@ -1,0 +1,17 @@
+# Local development profile: runs on a FILE-BASED H2 database so the backend can
+# start without Postgres AND keep data across restarts. The database lives in
+# ./data/statusreport.mv.db (relative to the backend working dir), so previously
+# uploaded documents, extracted items and comparison results are reused without
+# re-extracting. Delete that file to start fresh.
+# Activate with: mvn spring-boot:run -Dspring-boot.run.profiles=dev
+spring:
+  datasource:
+    url: jdbc:h2:file:./data/statusreport;MODE=PostgreSQL
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: ""
+  jpa:
+    hibernate:
+      # 'update' keeps the schema and DATA across restarts (create-drop wiped it).
+      ddl-auto: update
+    database-platform: org.hibernate.dialect.H2Dialect

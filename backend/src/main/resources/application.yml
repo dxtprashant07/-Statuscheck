@@ -1,0 +1,85 @@
+server:
+  port: 8080
+
+# Expose only the health endpoint for liveness/readiness probes (Docker, load balancers).
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: never
+
+spring:
+  # We provide our own JWT SecurityFilterChain; disable Boot's default in-memory
+  # user so it doesn't log a generated password on every startup.
+  autoconfigure:
+    exclude: org.springframework.boot.autoconfigure.security.servlet.UserDetailsServiceAutoConfiguration
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/statusreport}
+    username: ${DB_USERNAME:statusreport}
+    password: ${DB_PASSWORD:statusreport}
+  jpa:
+    hibernate:
+      ddl-auto: update
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: true
+  servlet:
+    multipart:
+      max-file-size: 25MB
+      max-request-size: 25MB
+
+# Which LLM provider backs the extraction/comparison fallback passes.
+# Options: groq | anthropic. Exactly one client bean loads based on this.
+llm:
+  provider: ${LLM_PROVIDER:groq}
+
+# Groq API settings — used by GroqApiClient (OpenAI-compatible chat API).
+# Set GROQ_API_KEY as an environment variable; never commit a real key here.
+groq:
+  api-key: ${GROQ_API_KEY:}
+  # 8b-instant has a separate, much larger free daily token pool (~500k TPD) than
+  # 70b-versatile (~100k TPD) and is faster. Lower quality, but enough for the
+  # extraction/matching passes. Override with GROQ_MODEL to switch back.
+  model: ${GROQ_MODEL:llama-3.1-8b-instant}
+  base-url: https://api.groq.com/openai/v1/chat/completions
+  # Kept modest: Groq counts max-tokens toward each request's per-minute token
+  # budget (free tier ~12k TPM). Chunking keeps inputs small, so 3000 is ample.
+  max-tokens: 3000
+
+# Anthropic API settings — used by ClaudeApiClient when llm.provider=anthropic.
+# Set ANTHROPIC_API_KEY as an environment variable; never commit a real key here.
+anthropic:
+  api-key: ${ANTHROPIC_API_KEY:}
+  model: claude-sonnet-4-6
+  base-url: https://api.anthropic.com/v1/messages
+  max-tokens: 8000
+
+# OCR fallback for scanned (image-only) PDFs that have no text layer.
+# tessdata-path must point to a folder containing <language>.traineddata
+# (e.g. the tessdata folder of a Tesseract install). If blank, Tesseract uses
+# the TESSDATA_PREFIX environment variable.
+ocr:
+  enabled: ${OCR_ENABLED:true}
+  tessdata-path: ${TESSDATA_PATH:tessdata}
+  language: ${OCR_LANGUAGE:eng}
+  dpi: ${OCR_DPI:300}
+
+# Authentication. Override JWT_SECRET in any real deployment (must be >= 32 chars
+# for HS256). expiration-ms defaults to 24h.
+security:
+  jwt:
+    secret: ${JWT_SECRET:dev-only-change-me-statuscheck-jwt-secret-key-0123456789abcd}
+    expiration-ms: ${JWT_EXPIRATION_MS:86400000}
+
+app:
+  storage:
+    # Where uploaded proposal / status report files are saved on disk.
+    root-dir: ${APP_STORAGE_DIR:./uploaded-documents}
+  cors:
+    # Both forms of the dev frontend origin - Vite binds to 127.0.0.1, but the
+    # browser may use either host. A mismatch yields a 403 "Invalid CORS request".
+    allowed-origins: ${APP_CORS_ALLOWED_ORIGINS:http://localhost:5173,http://127.0.0.1:5173}

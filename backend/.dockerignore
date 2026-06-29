@@ -1,0 +1,6 @@
+target/
+data/
+uploaded-documents/
+*.log
+.idea/
+*.iml

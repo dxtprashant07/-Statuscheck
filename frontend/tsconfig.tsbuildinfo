@@ -1,0 +1,1 @@
+{"root":["./src/app.tsx","./src/main.tsx","./src/types.ts","./src/api/client.ts","./src/auth/authcontext.tsx","./src/components/filedropzone.tsx","./src/components/resultstable.tsx","./src/components/statusbadge.tsx","./src/pages/loginpage.tsx","./src/pages/projectdetailpage.tsx","./src/pages/projectspage.tsx","./src/pages/registerpage.tsx"],"version":"5.9.3"}

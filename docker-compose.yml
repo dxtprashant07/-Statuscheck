@@ -1,0 +1,53 @@
+# Full stack: PostgreSQL + Spring Boot backend + nginx-served React frontend.
+# Copy .env.example to .env and fill in the secrets first, then:  docker compose up -d --build
+# The ${VAR:?...} entries make compose refuse to start if a required secret is missing.
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${DB_NAME:-statusreport}
+      POSTGRES_USER: ${DB_USER:-statusreport}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?set DB_PASSWORD in .env}
+    volumes:
+      - statusreport-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-statusreport} -d ${DB_NAME:-statusreport}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build: ./backend
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      DB_URL: jdbc:postgresql://postgres:5432/${DB_NAME:-statusreport}
+      DB_USERNAME: ${DB_USER:-statusreport}
+      DB_PASSWORD: ${DB_PASSWORD:?set DB_PASSWORD in .env}
+      JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET in .env (>= 32 chars)}
+      GROQ_API_KEY: ${GROQ_API_KEY:?set GROQ_API_KEY in .env}
+      GROQ_MODEL: ${GROQ_MODEL:-llama-3.1-8b-instant}
+      APP_CORS_ALLOWED_ORIGINS: ${APP_CORS_ALLOWED_ORIGINS:-http://localhost:8081}
+      APP_STORAGE_DIR: /data/uploaded-documents
+    volumes:
+      - statusreport-uploads:/data/uploaded-documents
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8080/actuator/health | grep -q UP || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 60s
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "${FRONTEND_PORT:-8081}:80"
+    depends_on:
+      - backend
+
+volumes:
+  statusreport-pgdata:
+  statusreport-uploads:

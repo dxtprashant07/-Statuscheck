@@ -1,0 +1,35 @@
+# Production profile. Activate with SPRING_PROFILES_ACTIVE=prod (the Docker image
+# sets this). Unlike the dev defaults, every secret here is REQUIRED via an env
+# var with no fallback - the app refuses to start if one is missing, so you can
+# never accidentally ship dev credentials.
+spring:
+  datasource:
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+  jpa:
+    hibernate:
+      ddl-auto: update
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: false
+
+security:
+  jwt:
+    secret: ${JWT_SECRET}                 # must be >= 32 chars; required, no default
+    expiration-ms: ${JWT_EXPIRATION_MS:86400000}
+
+app:
+  storage:
+    root-dir: ${APP_STORAGE_DIR:/data/uploaded-documents}
+  cors:
+    allowed-origins: ${APP_CORS_ALLOWED_ORIGINS}
+
+ocr:
+  tessdata-path: ${TESSDATA_PATH:/app/tessdata}
+
+logging:
+  level:
+    root: INFO
+    com.nxtgen.statusreport: INFO
