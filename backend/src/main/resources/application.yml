@@ -1,5 +1,6 @@
 server:
-  port: 8080
+  # Railway/Render/Fly inject the port via PORT; default to 8080 for Docker/local.
+  port: ${PORT:8080}
 
 # Expose only the health endpoint for liveness/readiness probes (Docker, load balancers).
 management:
