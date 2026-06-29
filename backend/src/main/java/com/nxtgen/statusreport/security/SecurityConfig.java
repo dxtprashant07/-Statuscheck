@@ -67,7 +67,10 @@ public class SecurityConfig {
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/**", config);
+        // Only the API is CORS-gated. Static SPA assets (index.html, /assets/**) must
+        // never be blocked by CORS — browsers fetch module scripts/styles with an
+        // Origin header, and gating them would 403 the whole UI on an origin mismatch.
+        source.registerCorsConfiguration("/api/**", config);
         return source;
     }
 }
